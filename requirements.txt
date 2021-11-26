@@ -1,1 +1,2 @@
-Pyrogram==1.2.9
+Pyrogram~=1.2.9
+python-kucoin~=2.1.3
