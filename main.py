@@ -1,47 +1,44 @@
 from pyrogram import Client
 from pyrogram.handlers import MessageHandler
+import configparser
 from kucoin.client import Client as ClientKucoin
 from datetime import datetime
-import discord_selfbot
-import telegram_selfbot
+import discord
 
-api_key = '619d3516a198580001b81a36'
-api_secret = '726efe1d-127c-4b20-948f-4553c176fcc7'
-api_passphrase = 'allora_adesso_scopo'
+config = configparser.ConfigParser()
+config.read("config.ini")
 
-clientkucoin = ClientKucoin(api_key, api_secret, api_passphrase)
-discord_selfbot.startDiscord()
-telegram_selfbot.startTelegram()
-# or connect to Sandbox
-# client = Client(api_key, api_secret, api_passphrase, sandbox=True)
 
-# get currencies
-#print(clientkucoin.get_currencies())
+clientkucoin = ClientKucoin(config["kucoin"]["kc_api_key"], config["kucoin"]["kc_api_secret"],
+                            config["kucoin"]["kc_api_passphrase"])
+funds_method1=50
 
-# get market depth
-#depth = clientkucoin.get_order_book('KCS-BTC')
-#
-## get symbol klines
-#print(clientkucoin.get_kline_data('KCS-BTC', kline_type='1min'))
-#
-## get list of markets
-#markets = clientkucoin.get_markets()
 
-# place a market buy order
-#order = client.create_market_order('NEO', Client.SIDE_BUY, size=20)
+def main():
 
-# get list of active orders
-#orders = clientkucoin.get_active_orders('KCS-BTC')
+    telegramclient = Client("telegram_session", config["telegram"]["tg_api_id"], config["telegram"]["tg_api_hash"])
+    telegramclient.add_handler(MessageHandler(telegram_msg))
+    telegramclient.run()
+
+
+
 
 def symbol_from_social(symbolo):
     start=datetime.now()
-    #clientkucoin.create_market_order(symbolo, ClientKucoin.SIDE_BUY, funds=50)
+    clientkucoin.create_market_order(symbolo, ClientKucoin.SIDE_BUY, funds=funds_method1)
+
 
     tickersymbolo=clientkucoin.get_ticker(symbolo)
-    clientkucoin.get_
     klinesymbol=clientkucoin.get_kline_data(symbolo, kline_type='1min')
-    print(float(klinesymbol[5]) * 2)
-    #clientkucoin.create_limit_order(symbolo, ClientKucoin.SIDE_SELL, str(float(klinesymbol[5])*2))
+    price5mago=float(klinesymbol[5][2])
+    limitprice=price5mago * 1.5
+    print(limitprice)
+    symbolonousdt=symbolo.split("-")[0]
+    boughtvalue=clientkucoin.get_accounts(symbolonousdt, 'trade')[0]["balance"]
+
+    #prendo prezzo attuale e lo moltiplico per i fondi usati
+    #clientkucoin.create_limit_order(symbolo, ClientKucoin.SIDE_SELL, limitprice, round(float(boughtvalue), 1))
+
     index=1
     for l in klinesymbol[0:15]:
         print(str(index)+" minuti fa: ", l[2])
@@ -51,3 +48,32 @@ def symbol_from_social(symbolo):
     stop = datetime.now()
     elapsed = stop-start
     print(elapsed.microseconds//1000," millisecondi")
+
+
+def telegram_msg(client, message):
+    if message.text is not None:
+        kucoinindex = message.text.find("kucoin.com/") + len("kucoin.com/")
+
+        usdtindex = message.text.find("-USDT") + 5
+        if kucoinindex != -1 and usdtindex != -1:
+            symbolo = message.text[kucoinindex:usdtindex]
+            if symbolo != "":
+                print(symbolo)
+                symbol_from_social(symbolo)
+
+
+def prepareds():
+    clientds = discord.Client()
+    @clientds.event
+    async def on_ready():
+        print('We have logged in as {0.user}'.format(clientds))
+
+    @clientds.event
+    async def on_message(message):
+        if message.content.startswith('BASIC-USDT'):
+            symbol_from_social(message.content)
+
+    clientds.run('NDk2Njk4OTY2MTA5NTg1NDEw.YaIIQg.LGcIl2iyUSeFSdL0S2u1Rh9_dWs')
+
+if __name__ == '__main__':
+    main()

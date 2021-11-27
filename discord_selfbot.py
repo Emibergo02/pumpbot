@@ -1,22 +1,24 @@
-import discord
+from multiprocessing import Process
 
-channel_id = 836973779514949688
-token= "OTEzMzM4ODA0OTg1ODEwOTk0.YZ9EWQ.Y9Ghqv-YkGSZqNtEqIg3s1x36pU"
 
-class MyClient(discord.Client):
-    async def on_ready(self):
-        print('Logged on as', self.user)
+def print_func(continent='Asia'):
+    print('The name of continent is : ', continent)
 
-    async def on_message(self, message):
-        # don't respond to ourselves
-        if message.author == self.user:
-            return
-        if message.channel.id != channel_id:
-            return
+if __name__ == "__main__":  # confirms that the code is under main function
+    names = ['America', 'Europe', 'Africa']
+    procs = []
+    proc = Process(target=print_func)  # instantiating without any argument
+    procs.append(proc)
+    proc.start()
 
-        if message.content == 'hei':
-            await message.channel.send('hei')
+    # instantiating process with arguments
+    for name in names:
+        # print(name)
+        proc = Process(target=print_func, args=(name,))
+        procs.append(proc)
+        proc.start()
 
-def startDiscord():
-    client = MyClient()
-    client.run(token)
+    # complete the processes
+    for proc in procs:
+        proc.join()
+
